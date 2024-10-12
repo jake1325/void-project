@@ -12,15 +12,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Headers for the request
     $headers = [
         'cookie: .ROBLOSECURITY=' . $roblosecurity,
-        'origin: https://hexagon.pw',
-        'referer: https://hexagon.pw/users/5/profile',
-        'sec-ch-ua: "Google Chrome";v="129", "Not=A?Brand";v="8", "Chromium";v="129"',
-        'sec-ch-ua-mobile: ?1',
-        'sec-ch-ua-platform: "Android"',
-        'sec-fetch-dest: empty',
-        'sec-fetch-mode: cors',
-        'sec-fetch-site: same-origin',
-        'user-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36'
+        'Content-Type: application/json'
     ];
 
     // Loop through IDs from start_id to end_id
@@ -31,18 +23,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             'type' => 'friend'
         ]);
 
-        // Initialize cURL session
-        $ch = curl_init($url);
+        // Create a stream context for the request
+        $options = [
+            'http' => [
+                'header'  => implode("\r\n", $headers),
+                'method'  => 'POST',
+                'content' => $data,
+            ]
+        ];
+        $context  = stream_context_create($options);
 
-        // cURL options
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array_merge($headers, ['Content-Type: application/json']));
-
-        // Execute the request and get the response
-        $response = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        // Send the request
+        $response = file_get_contents($url, false, $context);
+        $http_code = ($response === FALSE) ? 500 : 200; // Basic error handling
 
         // Check the response status
         if ($http_code == 200) {
@@ -53,9 +46,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             echo "Failed to send friend request to ID {$recipient_id}. Status code: {$http_code}<br>";
         }
-
-        // Close the cURL session
-        curl_close($ch);
     }
 } else {
     echo "Invalid request method.";
